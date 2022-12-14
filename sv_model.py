@@ -77,8 +77,10 @@ class StochVol(SDEModel):
 #         return theta[0], theta[1], self._sigma_z, theta[3]
         
     def _validator(self, x):
-        """ make sure vol and price never go negative """
-        return jnp.abs(x)
+        """ make sure vol and price never go negative.
+        We want an absorbing state for Z, not a reflective state
+        """
+        return jnp.maximum(x, 1e-10)  # jnp.abs(x)
     
     def drift(self, x, theta):
 #         _theta, kappa, sigma_z, mu = self._unpack(theta)
@@ -98,7 +100,7 @@ class StochVol(SDEModel):
         mu = self.drift(x, theta)
         Sigma = self.diff(x, theta)
         diff_process = jax.random.multivariate_normal(key, mean = x+mu*dt, cov=Sigma*dt)
-        diff_process = diff_process.at[0].set(jnp.abs(diff_process[0]))
+        # diff_process = diff_process.at[0].set(jnp.abs(diff_process[0]))
         return diff_process
         
     def meas_sample(self, key, x_curr, theta):
@@ -164,7 +166,7 @@ class StochVol(SDEModel):
             mu_z, sig2_z, mu_x, sig2_x = self._bridge_param(x, y_curr, theta, t)
             key, z_subkey, x_subkey = random.split(key,3)
 
-            x_prop = jnp.array([jnp.abs(mu_z + jnp.sqrt(sig2_z) * random.normal(z_subkey))+1e-10,
+            x_prop = jnp.array([mu_z + jnp.sqrt(sig2_z) * random.normal(z_subkey),
                                 jnp.where(t < self._n_res-1, 
                                           mu_x + jnp.sqrt(sig2_x) * random.normal(x_subkey),
                                           y_curr)])

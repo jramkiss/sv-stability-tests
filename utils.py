@@ -1,3 +1,4 @@
+from particle_gibbs import particle_gibbs
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
@@ -45,4 +46,59 @@ def plot_posteriors(pg_out, theta_true, theta_init, warmup_frac=5):
     [g.axes[i].axvline(x=theta_true[i], color = "firebrick", ls='-') for i in range(len(theta_true))];
     [g.axes[i].axvline(x=theta_init[i], color = "green", ls='--') for i in range(len(theta_true))];
     [g.axes[i].axvline(x=pg_out["theta"][:, i].mean(), color = "black", ls='-') for i in range(len(theta_true))];
+
+
+def init_latents(key, model, y_meas, theta_init, n_particles):
+    # estimate of latent states for PG
+    filtering_dist = pf.particle_filter(
+        model=model,
+        key=key,
+        y_meas=y_meas,
+        n_particles=n_particles,
+        theta=theta_init,
+        history=True)
+    latent_state_est = jax.vmap(
+        lambda x, w: jnp.average(x, axis=0, weights=pf.utils.logw_to_prob(w)),
+        in_axes=(0, 0))(filtering_dist["x_particles"],
+                        filtering_dist["logw"])
+    return latent_state_est
+
+
+def parameter_estimates(key, model, y_meas, theta_init, n_particles, n_iter, logprior, rw_sd=None):
+    """
+    Sample posteriors for parameters of `model` with Particle MWG sampler
+    """
+    if rw_sd is None:
+        rw_sd = jnp.abs(theta_init)/10
+
+    # estimate of latent states for PG
+    filtering_dist = pf.particle_filter(
+        model=model,
+        key=key,
+        y_meas=y_meas,
+        n_particles=n_particles,
+        theta=theta_init,
+        history=True)
+    latent_state_est = jax.vmap(
+        lambda x, w: jnp.average(x, axis=0, weights=pf.utils.logw_to_prob(w)),
+        in_axes=(0, 0))(filtering_dist["x_particles"],
+                        filtering_dist["logw"])
+
+    # run particle MWG:
+    pg_out = particle_gibbs(
+        key=key,
+        model=model,
+        n_iter=n_iter,
+        theta_init=theta_init,
+        x_state_init=latent_state_est,
+        y_meas=y_meas,
+        n_particles=n_particles,
+        rw_sd=rw_sd,
+        adapt_max=0.1,
+        adapt_rate=0.5,
+        logprior=logprior
+    )
+
+    print("Acceptance rate: ", pg_out["accept_rate"])
+    return pg_out
 
