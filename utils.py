@@ -1,4 +1,4 @@
-from particle_gibbs import particle_gibbs
+from pmmh import pmmh
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
@@ -64,7 +64,7 @@ def init_latents(key, model, y_meas, theta_init, n_particles):
     return latent_state_est
 
 
-def parameter_estimates(key, model, y_meas, theta_init, n_particles, n_iter, logprior, rw_sd=None):
+def parameter_estimates(key, model, y_meas, theta_init, n_particles, n_iter, logprior, adapt_max=0.0, rw_sd=None):
     """
     Sample posteriors for parameters of `model` with Particle MWG sampler
     """
@@ -85,7 +85,7 @@ def parameter_estimates(key, model, y_meas, theta_init, n_particles, n_iter, log
                         filtering_dist["logw"])
 
     # run particle MWG:
-    pg_out = particle_gibbs(
+    pg_out = pmmh(
         key=key,
         model=model,
         n_iter=n_iter,
@@ -94,7 +94,7 @@ def parameter_estimates(key, model, y_meas, theta_init, n_particles, n_iter, log
         y_meas=y_meas,
         n_particles=n_particles,
         rw_sd=rw_sd,
-        adapt_max=0.1,
+        adapt_max=adapt_max,
         adapt_rate=0.5,
         logprior=logprior
     )
