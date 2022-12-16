@@ -4,6 +4,7 @@ Stochastic volatility model:
     dX_t = \mu dt + \sqrt{Z_t} dW^x_t 
     dZ_t = (\theta + \kappa Z_t) dt + \sigma_z \sqrt{Z_t} dW_t^z
 
+An adaptation of the original model class found at https://github.com/jramkiss/filtering-jump-diffusion 
 """
 
 
