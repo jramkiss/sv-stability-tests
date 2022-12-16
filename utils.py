@@ -25,12 +25,12 @@ def quantile_index (logw, q):
     return nearest_ind
 
 
-def plot_posteriors(pg_out, theta_true, theta_init, warmup_frac=5):
+def plot_posteriors(pg_out, theta_true, warmup_frac=5):
     num_warmup = pg_out["theta"].shape[0] // warmup_frac
 
     posteriors = pd.DataFrame(
         pg_out["theta"][num_warmup:], 
-        columns = ["theta", "kappa", "mu"])
+        columns = ["theta", "kappa", "alpha"])
 
     plot_posteriors = pd.melt(posteriors, var_name = "param")
 
@@ -43,9 +43,8 @@ def plot_posteriors(pg_out, theta_true, theta_init, warmup_frac=5):
                       sharex=False, sharey=1,
                       col="param", height=4, aspect=1.3, col_wrap=3)
     g.map(sns.histplot, "value")
-    [g.axes[i].axvline(x=theta_true[i], color = "firebrick", ls='-') for i in range(len(theta_true))];
-    [g.axes[i].axvline(x=theta_init[i], color = "green", ls='--') for i in range(len(theta_true))];
-    [g.axes[i].axvline(x=pg_out["theta"][:, i].mean(), color = "black", ls='-') for i in range(len(theta_true))];
+    [g.axes[i].axvline(x=theta_true[i], color = "firebrick", ls='-', linewidth = 3) for i in range(len(theta_true))];
+    [g.axes[i].axvline(x=pg_out["theta"][:, i].mean(), color = "royalblue", ls='-', linewidth = 3) for i in range(len(theta_true))];
 
 
 def init_latents(key, model, y_meas, theta_init, n_particles):
@@ -101,4 +100,22 @@ def parameter_estimates(key, model, y_meas, theta_init, n_particles, n_iter, log
 
     print("Acceptance rate: ", pg_out["accept_rate"])
     return pg_out
+
+def discrepancy_samples(pos_1, pos_2, disc_measure, n):
+    """
+    Performs random shuffling of pooled population and returns discrepancy samples
+    Non-parametric, and no assumption required
+    """
+    df = pd.DataFrame()
+    len1 = len(pos_1)
+    pooled = pd.concat([pos_1, pos_2])
+
+    for i in range(n):
+        shuffled = pooled.sample(frac=1, random_state=i)
+        pos_1_sample = shuffled.iloc[:len1,:]
+        pos_2_sample = shuffled.iloc[len1:,:]
+        df_tmp = pd.DataFrame(disc_measure(pos_1_sample, pos_2_sample)).transpose()
+        df = df.append(df_tmp)
+
+    return df
 

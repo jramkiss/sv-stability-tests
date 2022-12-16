@@ -1,5 +1,5 @@
 """ 
-Based off of the particle gibbs function in: 
+PMMH-within-Gibbs, based off of the particle gibbs function in: 
     https://pfjax.readthedocs.io/en/latest/notebooks/mcmc_tutorial.html
 """
 
@@ -15,7 +15,7 @@ import pfjax.mcmc as mcmc
 def pmmh(key, model, n_iter, theta_init, x_state_init, n_particles, rw_sd, y_meas,
          logprior, adapt_max=0.0, adapt_rate=0.1):
     """
-    Sample from the joint posterior distribution of parameters and latent states using a Particle Gibbs sampler.
+    Sample from the joint posterior distribution of parameters and latent states using a PMMH sampler.
 
     Args:
         key: PRNG key.
