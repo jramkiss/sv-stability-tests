@@ -240,9 +240,7 @@ class StochVol(SDEModel):
     
     def pf_init(self, key, y_init, theta):
         key, subkey = random.split(key)
-        x_init = y_init + 5*random.normal(
-            subkey
-        )
+        x_init = y_init
         z_init = random.truncated_normal(
             subkey,
             lower=0.5,
